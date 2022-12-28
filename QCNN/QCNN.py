@@ -4,7 +4,7 @@ import torch
 import time
 import math 
 from torch.nn.functional import unfold, pad
-
+#commento prova 
 class QConv2d(torch.nn.Module):
     def __init__(self, in_channels, kernel_size, wires=7, stride=1, padding='same'):
         super(QConv2d, self).__init__()
