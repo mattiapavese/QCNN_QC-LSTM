@@ -41,7 +41,7 @@ class QConv2d(torch.nn.Module):
         else:
             raise ValueError('stride must be either an int or a tuple containing stride values over two axis (stride_height, stride_width)')
         
-        if self.padding == 'same': #FIXME: 'same' padding not properly computed 
+        if self.padding == 'same': 
             
             p_height = self.k_height - 1
             p_width = self.k_width - 1
@@ -70,7 +70,7 @@ class QConv2d(torch.nn.Module):
         
         #self.wires = math.ceil( math.log(kernel_entries, 2) )
         
-    def define_circuit(self):
+    def define_circuit(self): #FIXME: time to implement a better circuit for QCNN
         
         @qml.qnode(self.device)
         def qnode(inputs, weights_0, weights_1, weights_2, weights_3, weights_4, weights_5, weights_6 ):
