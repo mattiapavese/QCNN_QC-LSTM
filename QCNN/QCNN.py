@@ -1,13 +1,16 @@
 import pennylane as qml
-from pennylane import numpy as np
 import torch
-import time
-import math 
 from torch.nn.functional import unfold, pad
+from qnode import spec_qnode
 
 class QConv2d(torch.nn.Module):
-    def __init__(self, in_channels, kernel_size, wires=7, stride=1, padding='same'):
+    
+    def __init__(self, in_channels, kernel_size, wires=6, stride=1, padding='same'):
+        
         super(QConv2d, self).__init__()
+        
+        assert wires%2==0, "please build QConv2d vqc with an even number of wires"
+        
         self.in_channels = in_channels
         self.kernel_size = kernel_size
         self.stride = stride
@@ -68,37 +71,10 @@ class QConv2d(torch.nn.Module):
         else:
             raise ValueError("padding must be either 'same' or 'valid' or a four element tuple indicating (left pad, right pad, top pad, bottom pad)")
         
-        #self.wires = math.ceil( math.log(kernel_entries, 2) )
         
     def define_circuit(self): #FIXME: time to implement a better circuit for QCNN
         
-        @qml.qnode(self.device)
-        def qnode(inputs, weights_0, weights_1, weights_2, weights_3, weights_4, weights_5, weights_6 ):
-            
-            qml.AmplitudeEmbedding( inputs, wires = range(self.wires), normalize=True, pad_with=0 )
-            
-            qml.Rot(*weights_0, wires=0)
-            qml.Rot(*weights_1, wires=1)
-            qml.Rot(*weights_2, wires=2)
-            qml.Rot(*weights_3, wires=3)
-            qml.Rot(*weights_4, wires=4)
-            qml.Rot(*weights_5, wires=5)
-            qml.Rot(*weights_6, wires=6)
-            
-            
-            qml.CNOT(wires=[0, 1])
-            qml.CNOT(wires=[1, 2])
-            qml.CNOT(wires=[2, 3])
-            qml.CNOT(wires=[3, 4])
-            qml.CNOT(wires=[4, 5])
-            qml.CNOT(wires=[5, 6])
-            qml.CNOT(wires=[6, 0])
-            
-            return qml.probs( wires = list(range(self.wires)) ) #[qml.expval(qml.PauliZ(i)) for i in range(self.wires)]
-        
-        self.weight_shapes = { "weights_0": 3, "weights_1": 3, "weights_2": 3,
-                              "weights_3": 3, "weights_4": 3, "weights_5": 3, "weights_6": 3 }  
-        self.qnode = qnode
+        self.qnode, self.weight_shapes = spec_qnode(self.device, self.wires)
    
     def forward(self, x):
     
@@ -112,18 +88,9 @@ class QConv2d(torch.nn.Module):
         
         x = torch.transpose( unfold( x, kernel_size=self.kernel_size, stride=self.stride) , -1, -2 ) 
         x = torch.transpose(self.qlayer(x) , -1, -2 )
-       
-        
+
         return torch.reshape(x, x.shape[:2] + out_shape)
 
-in_channels=6
-x = torch.tensor( np.random.rand(1, in_channels, 8, 7), requires_grad=True ).float()
-
-conv2d =QConv2d(in_channels=in_channels, kernel_size=(4,5))
-
-out=conv2d(x)
-
-print('out:', out)
 
 
 

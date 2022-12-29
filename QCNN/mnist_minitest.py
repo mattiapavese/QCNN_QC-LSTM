@@ -1,0 +1,1 @@
+#here we make test with mnist comparing QCNN and CNN 
